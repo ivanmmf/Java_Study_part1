@@ -1,9 +1,7 @@
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -17,30 +15,28 @@ class AccountTest {
     }
 
     @Test
-    void setOwnerFail1() {
+    void setOwnerFailEmpty() {
         Account account = Account.of("123", "Ivan Rybnikov");
 
-        IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            account.setOwner("");
-        });
+        IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class, () -> account.setOwner(""));
         Assertions.assertEquals("Owner must be not empty and null", thrown.getMessage());
     }
 
     @Test
-    void setOwnerFail2() {
+    void setOwnerFailNull() {
         Account account = Account.of("123", "Ivan Rybnikov");
 
-        IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            account.setOwner(null);
-        });
+        IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class, () -> account.setOwner(null));
         Assertions.assertEquals("Owner must be not empty and null", thrown.getMessage());
     }
 
     @Test
-    void getBalances() {
+    void getBalancesIncapsulation() {
         Account account = Account.of("123", "Ivan Rybnikov");
-        account.changeMoney("USD", 1000);
-        assertEquals(account.getBalances().get("USD"), 1000);
+        account.changeMoney(Currency.valueOf("USD"), 1000);
+        HashMap<Currency, Integer> incapsulateCheck = account.getBalances();
+        incapsulateCheck.put(Currency.valueOf("USD"), 2000);
+        assertEquals(account.getBalances().get(Currency.USD), 1000);
     }
 
     @Test
@@ -50,89 +46,70 @@ class AccountTest {
     }
 
     @Test
-    void ofFail1() {
-        IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            Account.of("123", "");
-        });
+    void ofFailEmpty() {
+        IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class, () -> Account.of("123", ""));
         Assertions.assertEquals("Owner must be not empty and null", thrown.getMessage());
     }
 
     @Test
-    void ofFail2() {
-        IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            Account.of("123", null);
-        });
+    void ofFailNull() {
+        IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class, () -> Account.of("123", null));
         Assertions.assertEquals("Owner must be not empty and null", thrown.getMessage());
     }
 
     @Test
     void addMoneySuccess() {
         Account account = Account.of("123", "Ivan Rybnikov");
-        account.changeMoney("USD", 1000);
-        assertEquals(account.getBalances().get("USD"), 1000);
+        account.changeMoney(Currency.valueOf("USD"), 1000);
+        assertEquals(account.getBalances().get(Currency.USD), 1000);
     }
 
     @Test
     void addMoneySuccessSameCurrency() {
         Account account = Account.of("123", "Ivan Rybnikov");
-        account.changeMoney("USD", 1000);
-        account.changeMoney("USD", 1200);
-        assertEquals(account.getBalances().get("USD"), 1200);
+        account.changeMoney(Currency.valueOf("USD"), 1000);
+        account.changeMoney(Currency.valueOf("USD"), 1200);
+        assertEquals(account.getBalances().get(Currency.USD), 1200);
     }
 
     @Test
     void addMoneySuccessDifferentCurrency() {
         Account account = Account.of("123", "Ivan Rybnikov");
-        account.changeMoney("USD", 1000);
-        account.changeMoney("RUB", 1200);
-        assertEquals(account.getBalances().get("USD"), 1000);
-        assertEquals(account.getBalances().get("RUB"), 1200);
+        account.changeMoney(Currency.valueOf("USD"), 1000);
+        account.changeMoney(Currency.valueOf("RUB"), 1200);
+        assertEquals(account.getBalances().get(Currency.USD), 1000);
+        assertEquals(account.getBalances().get(Currency.RUB), 1200);
     }
 
     @Test
-    void addMoneyFail1() {
+    void addMoneyFail() {
         Account account = Account.of("123", "Ivan Rybnikov");
 
-        IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            account.changeMoney("USD", -5);
-        });
+        IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class, () -> account.changeMoney(Currency.valueOf("USD"), -5));
         Assertions.assertEquals("Amount can't be below zero", thrown.getMessage());
-
     }
 
     @Test
-    void addMoneyFail2() {
+    void undoAddMoney() {
         Account account = Account.of("123", "Ivan Rybnikov");
-
-        IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            account.changeMoney("USB", 1000);
-        });
-        assertEquals("Not correct currency", thrown.getMessage());
-
-    }
-
-
-    @Test
-    void undoAddMoney() throws NoSuchFieldException, IllegalAccessException {
-        Account account = Account.of("123", "Ivan Rybnikov");
-        account.changeMoney("USD", 1000);
+        account.changeMoney(Currency.valueOf("USD"), 1000);
         account.undo();
-        assertEquals(account.getBalances(), null);
+        assertEquals(account.getBalances().size(), 0);
     }
 
     @Test
-    void doubleUndoAddMoney() throws NoSuchFieldException, IllegalAccessException {
+    void doubleUndoAddMoney() {
         Account account = Account.of("123", "Ivan Rybnikov");
-        account.changeMoney("USD", 1000);
-        account.changeMoney("RUB", 1000);
-        account.changeMoney("USD", 1000);
+        account.changeMoney(Currency.valueOf("USD"), 1000);
+        account.changeMoney(Currency.valueOf("RUB"), 1000);
+        account.changeMoney(Currency.valueOf("USD"), 1000);
         account.undo();
         account.undo();
-        assertEquals(account.getBalances().get("USD"), 1000);
+        assertEquals(account.getBalances().get(Currency.USD), 1000);
     }
 
     @Test
-    void undoSetOwner() throws NoSuchFieldException, IllegalAccessException {
+    void undoSetOwner() {
         Account account = Account.of("123", "Ivan Rybnikov");
         account.setOwner("Timofey");
         account.undo();
@@ -140,14 +117,14 @@ class AccountTest {
     }
 
     @Test
-    void undoMixedDoubleNoCurrencyInitialState() throws NoSuchFieldException, IllegalAccessException {
+    void undoMixedDoubleNoCurrencyInitialState() {
         Account account = Account.of("123", "Ivan Rybnikov");
         account.setOwner("Timofey");
-        account.changeMoney("USD", 1000);
+        account.changeMoney(Currency.valueOf("USD"), 1000);
         account.undo();
         account.undo();
         assertEquals(account.getOwner(), "Ivan Rybnikov");
-        assertEquals(account.getBalances(), null);
+        assertEquals(account.getBalances().size(), 0);
     }
 
     @Test
@@ -155,7 +132,7 @@ class AccountTest {
         Account account = Account.of("123", "Ivan Rybnikov");
 
         UnsupportedOperationException thrown = Assertions.assertThrows(UnsupportedOperationException.class, () -> {
-            account.changeMoney("USD", 1000);
+            account.changeMoney(Currency.valueOf("USD"), 1000);
             account.undo();
             account.undo();
         });
@@ -175,7 +152,7 @@ class AccountTest {
     }
 
     @Test
-    void addSnapshot() throws InterruptedException {
+    void addSnapshot() {
         Account account = Account.of("123", "Ivan Rybnikov");
         account.addSnapshot();
         String key = (String) account.accountSnapshots.keySet().toArray()[0];
@@ -184,7 +161,7 @@ class AccountTest {
     }
 
     @Test
-    void immutableSnapshot() throws InterruptedException {
+    void immutableSnapshot() {
         Account account = Account.of("123", "Ivan Rybnikov");
         account.addSnapshot();
         String key = (String) account.accountSnapshots.keySet().toArray()[0];
@@ -195,7 +172,7 @@ class AccountTest {
     }
 
     @Test
-    void returnSnapshot() throws InterruptedException {
+    void returnSnapshot() {
         Account account = Account.of("123", "Ivan Rybnikov");
         account.addSnapshot();
         String key = (String) account.accountSnapshots.keySet().toArray()[0];

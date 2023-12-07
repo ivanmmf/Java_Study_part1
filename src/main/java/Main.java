@@ -1,17 +1,15 @@
 public class Main {
-    public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException, InterruptedException {
+    public static void main(String[] args) {
 
 
         Account account = Account.of("12345", "Ivan Rybnikov");
-        account.changeMoney("EUR", 1000);
-        account.addSnapshot();
-        String key = (String) account.accountSnapshots.keySet().toArray()[0];
         account.setOwner("Timofey");
-        account.returnSnapshot(key);
-        System.out.println(account.returnSnapshot(key));
-
-
-
-
+        account.changeMoney(Currency.valueOf("USD"), 1000);
+        account.changeMoney(Currency.valueOf("RUB"), 1000);
+        account.changeMoney(Currency.valueOf("USD"), 1000);
+        account.changeMoney(Currency.valueOf("USD"), 1000);
+        account.undo();
+        account.undo();
+        System.out.println(account);
     }
 }
